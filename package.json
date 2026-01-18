@@ -1,0 +1,45 @@
+{
+  "name": "drift-app",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "migrate:supabase": "ts-node scripts/sync-supabase-migrations.ts"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/slider": "^5.0.1",
+    "@supabase/supabase-js": "^2.86.2",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "expo": "^54.0.27",
+    "expo-asset": "~12.0.11",
+    "expo-constants": "~18.0.11",
+    "expo-crypto": "^15.0.8",
+    "expo-linking": "~8.0.10",
+    "expo-router": "~6.0.17",
+    "expo-sqlite": "~16.0.10",
+    "expo-vector-icons": "^10.0.1",
+    "expo-web-browser": "^15.0.10",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-url-polyfill": "^3.0.0",
+    "tailwind-merge": "^2.6.0",
+    "uuid": "^13.0.0",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "~18.3.12",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.3.3"
+  },
+  "private": true
+}
