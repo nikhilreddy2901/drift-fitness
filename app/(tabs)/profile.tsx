@@ -115,11 +115,15 @@ export default function ProfileScreen() {
         {/* User Info */}
         <View style={styles.userInfo}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>N</Text>
+            <Text style={styles.avatarText}>
+              {(profile?.name || 'User').charAt(0).toUpperCase()}
+            </Text>
           </View>
           <View style={styles.userDetails}>
-            <Text style={styles.userName}>Nikhil</Text>
-            <Text style={styles.userRole}>Premium Member</Text>
+            <Text style={styles.userName}>{profile?.name || 'User'}</Text>
+            <Text style={styles.userRole}>
+              {profile ? `Week ${profile.currentWeek} • ${profile.experienceLevel}` : 'Getting started'}
+            </Text>
           </View>
         </View>
       </View>

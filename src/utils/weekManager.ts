@@ -6,7 +6,7 @@
 import { UserProfileRepo, WeeklyProgressRepo, WorkoutsRepo } from '../db/client';
 import { format, parseISO, differenceInWeeks, startOfWeek, addWeeks, endOfWeek } from 'date-fns';
 import { calculateNextWeekTarget, isDeloadWeek } from './overloadLogic';
-import { generateSchedule, serializeSchedule } from './scheduleGenerator';
+import { generateWeeklySchedule, serializeSchedule } from './scheduleGenerator';
 
 /**
  * Check if we need to advance to a new week and update if necessary
@@ -228,7 +228,7 @@ async function createNewWeekProgress(
 ): Promise<void> {
   try {
     // Generate smart schedule
-    const schedule = generateSchedule(trainingDaysPerWeek, weekStartDate);
+    const schedule = generateWeeklySchedule(weekStartDate, trainingDaysPerWeek);
     const serializedSchedule = serializeSchedule(schedule);
 
     // Count sessions per muscle group

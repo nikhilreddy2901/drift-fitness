@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ExerciseBlock } from '../workout/ExerciseBlock';
+import { RestTimer } from '../workout/RestTimer';
 import { ProgressBar } from '../ui/ProgressBar';
 import { Button } from '../ui/Button';
 import { colors, spacing, typography, borderRadius } from '../../constants/theme';
@@ -16,7 +17,7 @@ interface Set {
 }
 
 interface Exercise {
-  id: number;
+  id: string;
   name: string;
   slot: string;
   sets: Set[];
@@ -44,6 +45,7 @@ export function ActiveWorkout({
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [restDuration, setRestDuration] = useState(90);
   const [restRemaining, setRestRemaining] = useState(90);
+  const [isTimerExpanded, setIsTimerExpanded] = useState(true);
 
   // Timer for workout duration
   useEffect(() => {
@@ -84,6 +86,7 @@ export function ActiveWorkout({
     setRestDuration(duration);
     setRestRemaining(duration);
     setShowRestTimer(true);
+    setIsTimerExpanded(true); // Always pop up expanded first
   };
 
   const handleFinish = () => {
@@ -159,41 +162,37 @@ export function ActiveWorkout({
         </Button>
       </View>
 
-      {/* Rest Timer Modal */}
+      {/* Enhanced Rest Timer */}
       <Modal
-        visible={showRestTimer}
+        visible={showRestTimer && isTimerExpanded}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowRestTimer(false)}
+        onRequestClose={() => setIsTimerExpanded(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.restTimerModal}>
-            <TouchableOpacity
-              style={styles.closeRestTimer}
-              onPress={() => setShowRestTimer(false)}
-            >
-              <Ionicons name="close" size={24} color={colors.gray[600]} />
-            </TouchableOpacity>
-
-            <View style={styles.restTimerContent}>
-              <Ionicons name="timer-outline" size={48} color={colors.blue[600]} />
-              <Text style={styles.restTimerLabel}>Rest Timer</Text>
-              <Text style={styles.restTimerTime}>{formatTime(restRemaining)}</Text>
-              <Text style={styles.restTimerTotal}>
-                {formatTime(restDuration)} total
-              </Text>
-            </View>
-
-            <Button
-              onPress={() => setShowRestTimer(false)}
-              variant="primary"
-              style={styles.skipRestButton}
-            >
-              Skip Rest
-            </Button>
-          </View>
-        </View>
+        <RestTimer
+          isActive={showRestTimer}
+          duration={restDuration}
+          remaining={restRemaining}
+          onSkip={() => setShowRestTimer(false)}
+          onAdjust={(delta) => setRestRemaining(prev => Math.max(0, prev + delta))}
+          onExpand={() => setIsTimerExpanded(true)}
+          onMinimize={() => setIsTimerExpanded(false)}
+          isExpanded={true}
+        />
       </Modal>
+
+      {/* Floating Timer (when not expanded) */}
+      {!isTimerExpanded && showRestTimer && (
+        <RestTimer
+          isActive={showRestTimer}
+          duration={restDuration}
+          remaining={restRemaining}
+          onSkip={() => setShowRestTimer(false)}
+          onAdjust={(delta) => setRestRemaining(prev => Math.max(0, prev + delta))}
+          onExpand={() => setIsTimerExpanded(true)}
+          isExpanded={false}
+        />
+      )}
     </SafeAreaView>
   );
 }

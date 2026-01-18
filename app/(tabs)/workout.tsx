@@ -200,27 +200,6 @@ export default function WorkoutTab() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Resume Active Workout */}
-        {activeWorkout && (
-          <Pressable
-            style={styles.resumeBanner}
-            onPress={handleResumeWorkout}
-          >
-            <View style={styles.resumeContent}>
-              <View style={styles.resumeIcon}>
-                <Ionicons name="play-circle" size={24} color={colors.blue[600]} />
-              </View>
-              <View style={styles.resumeText}>
-                <Text style={styles.resumeTitle}>Resume Workout</Text>
-                <Text style={styles.resumeSubtitle}>
-                  {activeWorkout.muscleGroup.charAt(0).toUpperCase() + activeWorkout.muscleGroup.slice(1)} Day in progress
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={colors.blue[600]} />
-          </Pressable>
-        )}
-
         {/* Recommended Workout */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>

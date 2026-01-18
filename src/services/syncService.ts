@@ -56,6 +56,8 @@ async function isOnline(): Promise<boolean> {
 
 async function syncExercisesFromCloud(): Promise<void> {
   try {
+    console.log('[Sync] Fetching exercises from cloud...');
+
     // Fetch all exercises from Supabase
     const { data, error } = await supabase
       .from('exercises')
@@ -63,12 +65,14 @@ async function syncExercisesFromCloud(): Promise<void> {
       .order('name');
 
     if (error) {
-      console.error('[Sync] Error fetching exercises from cloud:', error);
+      // Log the actual error for debugging
+      console.error('[Sync] Error fetching exercises from cloud:', error.message);
+      console.error('[Sync] Error details:', { code: error.code, hint: error.hint });
       throw error;
     }
 
     if (!data || data.length === 0) {
-      console.log('[Sync] No exercises found in cloud');
+      console.warn('[Sync] No exercises found in cloud - exercise library may not be seeded');
       return;
     }
 
@@ -95,8 +99,10 @@ async function syncExercisesFromCloud(): Promise<void> {
 
     console.log(`[Sync] Successfully synced ${data.length} exercises to local SQLite`);
   } catch (error) {
-    console.error('[Sync] Error syncing exercises:', error);
-    // Don't throw - exercises sync failure shouldn't block user data sync
+    // Log error but don't throw - exercises sync failure shouldn't block the app
+    // User can still work offline with local seed data
+    console.error('[Sync] Exercise sync failed:', error instanceof Error ? error.message : error);
+    console.log('[Sync] App will continue with local exercise data');
   }
 }
 

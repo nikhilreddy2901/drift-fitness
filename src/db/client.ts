@@ -15,7 +15,7 @@ class DatabaseClient {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized: boolean = false;
 
-  private constructor() {}
+  private constructor() { }
 
   /**
    * Get singleton instance
@@ -626,3 +626,92 @@ export const DriftItemsRepo = {
     );
   },
 };
+
+/**
+ * Logged Sets Repository
+ */
+export const LoggedSetsRepo = {
+  async getAll() {
+    return db.query(`
+      SELECT ls.*, we.exercise_name, we.exercise_id, w.date, w.muscle_group
+      FROM logged_sets ls
+      JOIN workout_exercises we ON ls.workout_exercise_id = we.id
+      JOIN workouts w ON we.workout_id = w.id
+      ORDER BY ls.logged_at DESC
+    `);
+  },
+
+  async getByWorkoutExerciseId(workoutExerciseId: string) {
+    return db.query(
+      "SELECT * FROM logged_sets WHERE workout_exercise_id = ? ORDER BY set_number",
+      [workoutExerciseId]
+    );
+  },
+};
+
+/**
+ * Stats Repository - For progress tracking and PRs
+ */
+export const StatsRepo = {
+  /**
+   * Get personal records (highest weight for each exercise)
+   */
+  async getPersonalRecords(limit: number = 10) {
+    return db.query(`
+      SELECT 
+        we.exercise_name as exercise,
+        MAX(ls.weight) as weight,
+        ls.reps,
+        w.date
+      FROM logged_sets ls
+      JOIN workout_exercises we ON ls.workout_exercise_id = we.id
+      JOIN workouts w ON we.workout_id = w.id
+      WHERE ls.is_warmup = 0
+      GROUP BY we.exercise_id
+      ORDER BY ls.weight DESC
+      LIMIT ?
+    `, [limit]);
+  },
+
+  /**
+   * Get total workout count
+   */
+  async getTotalWorkoutCount() {
+    const result = await db.queryOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM workouts WHERE status = 'completed'"
+    );
+    return result?.count || 0;
+  },
+
+  /**
+   * Get weekly volume history (last N weeks)
+   */
+  async getWeeklyVolumeHistory(weeks: number = 8) {
+    return db.query(`
+      SELECT 
+        week_start_date,
+        week_number,
+        (push_completed_volume + pull_completed_volume + legs_completed_volume) as total_volume,
+        push_completed_volume,
+        pull_completed_volume,
+        legs_completed_volume
+      FROM weekly_progress
+      ORDER BY week_start_date DESC
+      LIMIT ?
+    `, [weeks]);
+  },
+
+  /**
+   * Get PR count (unique exercises with logged sets)
+   */
+  async getPRCount() {
+    const result = await db.queryOne<{ count: number }>(`
+      SELECT COUNT(DISTINCT we.exercise_id) as count
+      FROM logged_sets ls
+      JOIN workout_exercises we ON ls.workout_exercise_id = we.id
+      WHERE ls.is_warmup = 0
+    `);
+    return result?.count || 0;
+  },
+};
+

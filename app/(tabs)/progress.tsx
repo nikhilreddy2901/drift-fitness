@@ -8,36 +8,60 @@ import { StrengthChart } from '@/src/components/progress/StrengthChart';
 import { WorkoutHistory } from '@/src/components/progress/WorkoutHistory';
 import { useUserStore } from '@/src/stores/useUserStore';
 import { useWorkoutStore } from '@/src/stores/useWorkoutStore';
+import { StatsRepo } from '@/src/db/client';
+import { formatDistanceToNow } from 'date-fns';
 
-type View = 'overview' | 'history' | 'prs';
+type ViewType = 'overview' | 'history' | 'prs';
+
+interface PersonalRecord {
+  exercise: string;
+  weight: number;
+  reps: number;
+  date: string;
+}
 
 export default function ProgressScreen() {
-  const [activeView, setActiveView] = useState<View>('overview');
+  const [activeView, setActiveView] = useState<ViewType>('overview');
   const { profile, loadProfile } = useUserStore();
   const { weeklyProgress, loadWeeklyProgress } = useWorkoutStore();
+  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
+  const [totalWorkouts, setTotalWorkouts] = useState(0);
+  const [prCount, setPRCount] = useState(0);
 
   useEffect(() => {
     loadProfile();
     loadWeeklyProgress();
+    loadStats();
   }, []);
+
+  const loadStats = async () => {
+    try {
+      // Load PRs
+      const prs = await StatsRepo.getPersonalRecords(10);
+      const formattedPRs = prs.map((pr: any) => ({
+        exercise: pr.exercise,
+        weight: pr.weight,
+        reps: pr.reps,
+        date: pr.date ? formatDistanceToNow(new Date(pr.date), { addSuffix: true }) : 'Recently',
+      }));
+      setPersonalRecords(formattedPRs);
+
+      // Load counts
+      const workoutCount = await StatsRepo.getTotalWorkoutCount();
+      setTotalWorkouts(workoutCount);
+
+      const prTotal = await StatsRepo.getPRCount();
+      setPRCount(prTotal);
+    } catch (error) {
+      console.error('[Progress] Error loading stats:', error);
+    }
+  };
 
   const getTotalVolume = () => {
     if (!weeklyProgress) return 0;
     const wp = weeklyProgress as any;
     return (wp.push_completed_volume || 0) + (wp.pull_completed_volume || 0) + (wp.legs_completed_volume || 0);
   };
-
-  const getWorkoutCount = () => {
-    if (!profile) return 0;
-    return (profile.currentWeek - 1) * 3;
-  };
-
-  const personalRecords = [
-    { exercise: 'Bench Press', weight: 225, reps: 5, date: '2 days ago' },
-    { exercise: 'Squat', weight: 315, reps: 5, date: '1 week ago' },
-    { exercise: 'Deadlift', weight: 405, reps: 3, date: '1 week ago' },
-    { exercise: 'Overhead Press', weight: 135, reps: 8, date: '3 days ago' },
-  ];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -87,7 +111,7 @@ export default function ProgressScreen() {
                 <Text style={styles.statLabel}>Week Streak</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>{getWorkoutCount()}</Text>
+                <Text style={styles.statValue}>{totalWorkouts}</Text>
                 <Text style={styles.statLabel}>Total Workouts</Text>
               </View>
               <View style={styles.statCard}>
@@ -95,7 +119,7 @@ export default function ProgressScreen() {
                 <Text style={styles.statLabel}>Total Volume</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>28</Text>
+                <Text style={styles.statValue}>{prCount}</Text>
                 <Text style={styles.statLabel}>Personal Records</Text>
               </View>
             </View>
@@ -116,22 +140,19 @@ export default function ProgressScreen() {
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>Body Measurements</Text>
-                <TouchableOpacity>
-                  <Text style={styles.addButton}>Add Entry</Text>
-                </TouchableOpacity>
               </View>
               <View style={styles.measurements}>
                 <View style={styles.measurement}>
                   <Text style={styles.measurementLabel}>Weight</Text>
-                  <Text style={styles.measurementValue}>{profile?.bodyweight || 0} lbs</Text>
+                  <Text style={styles.measurementValue}>{profile?.bodyweight || '—'} lbs</Text>
                 </View>
                 <View style={styles.measurement}>
-                  <Text style={styles.measurementLabel}>Body Fat</Text>
-                  <Text style={styles.measurementValue}>14.2%</Text>
+                  <Text style={styles.measurementLabel}>Experience</Text>
+                  <Text style={styles.measurementValue}>{profile?.experienceLevel || '—'}</Text>
                 </View>
                 <View style={styles.measurement}>
-                  <Text style={styles.measurementLabel}>Waist</Text>
-                  <Text style={styles.measurementValue}>32 in</Text>
+                  <Text style={styles.measurementLabel}>Days/Week</Text>
+                  <Text style={styles.measurementValue}>{profile?.trainingDaysPerWeek || '—'}</Text>
                 </View>
               </View>
             </View>
@@ -142,22 +163,30 @@ export default function ProgressScreen() {
 
         {activeView === 'prs' && (
           <View style={styles.prsContent}>
-            {personalRecords.map((pr, idx) => (
-              <View key={idx} style={styles.prCard}>
-                <View style={styles.prContent}>
-                  <View style={styles.prIconContainer}>
-                    <Ionicons name="trophy" size={20} color={colors.amber[600]} />
-                  </View>
-                  <View style={styles.prInfo}>
-                    <Text style={styles.prExercise}>{pr.exercise}</Text>
-                    <Text style={styles.prStats}>
-                      {pr.weight} lbs × {pr.reps} reps
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.prDate}>{pr.date}</Text>
+            {personalRecords.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="trophy-outline" size={48} color={colors.gray[400]} />
+                <Text style={styles.emptyStateTitle}>No Personal Records Yet</Text>
+                <Text style={styles.emptyStateSubtitle}>Complete workouts to track your PRs</Text>
               </View>
-            ))}
+            ) : (
+              personalRecords.map((pr, idx) => (
+                <View key={idx} style={styles.prCard}>
+                  <View style={styles.prContent}>
+                    <View style={styles.prIconContainer}>
+                      <Ionicons name="trophy" size={20} color={colors.amber[600]} />
+                    </View>
+                    <View style={styles.prInfo}>
+                      <Text style={styles.prExercise}>{pr.exercise}</Text>
+                      <Text style={styles.prStats}>
+                        {pr.weight} lbs × {pr.reps} reps
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.prDate}>{pr.date}</Text>
+                </View>
+              ))
+            )}
           </View>
         )}
       </ScrollView>
@@ -343,6 +372,24 @@ const styles = StyleSheet.create({
   },
 
   prDate: {
+    fontSize: typography.sizes.sm,
+    color: colors.gray[500],
+  },
+
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing[16],
+    gap: spacing[3],
+  },
+
+  emptyStateTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.medium,
+    color: colors.gray[700],
+  },
+
+  emptyStateSubtitle: {
     fontSize: typography.sizes.sm,
     color: colors.gray[500],
   },

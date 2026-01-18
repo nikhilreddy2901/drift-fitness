@@ -22,6 +22,10 @@
       },
       "package": "com.drift.app"
     },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
     "plugins": [
       "expo-router",
       "expo-sqlite"

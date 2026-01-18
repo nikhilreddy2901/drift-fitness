@@ -170,6 +170,7 @@ export const SupabaseUserProfileRepo = {
    * Upsert (insert or update) user profile
    */
   async upsert(profile: {
+    name?: string;
     bodyweight: number;
     experienceLevel: ExperienceLevel;
     trainingDaysPerWeek: number;
@@ -185,6 +186,7 @@ export const SupabaseUserProfileRepo = {
       .from('user_profile')
       .upsert({
         user_id: user.id,
+        name: profile.name || null,
         bodyweight: profile.bodyweight,
         experience_level: profile.experienceLevel,
         training_days_per_week: profile.trainingDaysPerWeek,

@@ -37,32 +37,33 @@ const EXPERIENCE_LEVELS: {
   volumeMultiplier: number; // Multiplier for bodyweight-based volume calculation
   startingWeights: { bench: number; squat: number; deadlift: number };
 }[] = [
-  {
-    level: "beginner",
-    label: "Beginner",
-    description: "New to lifting or returning after a long break",
-    volumeMultiplier: 100, // 100 lbs per lb of bodyweight per week
-    startingWeights: { bench: 45, squat: 45, deadlift: 95 },
-  },
-  {
-    level: "intermediate",
-    label: "Intermediate",
-    description: "6+ months of consistent training",
-    volumeMultiplier: 175, // 175 lbs per lb of bodyweight per week
-    startingWeights: { bench: 135, squat: 185, deadlift: 225 },
-  },
-  {
-    level: "advanced",
-    label: "Advanced",
-    description: "2+ years of consistent training",
-    volumeMultiplier: 300, // 300 lbs per lb of bodyweight per week
-    startingWeights: { bench: 225, squat: 315, deadlift: 405 },
-  },
-];
+    {
+      level: "beginner",
+      label: "Beginner",
+      description: "New to lifting or returning after a long break",
+      volumeMultiplier: 100, // 100 lbs per lb of bodyweight per week
+      startingWeights: { bench: 45, squat: 45, deadlift: 95 },
+    },
+    {
+      level: "intermediate",
+      label: "Intermediate",
+      description: "6+ months of consistent training",
+      volumeMultiplier: 175, // 175 lbs per lb of bodyweight per week
+      startingWeights: { bench: 135, squat: 185, deadlift: 225 },
+    },
+    {
+      level: "advanced",
+      label: "Advanced",
+      description: "2+ years of consistent training",
+      volumeMultiplier: 300, // 300 lbs per lb of bodyweight per week
+      startingWeights: { bench: 225, squat: 315, deadlift: 405 },
+    },
+  ];
 
 const GOALS = [
   { id: 'strength', label: 'Strength', icon: 'barbell', description: 'Maximize your lifting numbers', volumeMultiplier: 0.8 },
   { id: 'hypertrophy', label: 'Muscle Growth', icon: 'fitness', description: 'Build lean muscle mass', volumeMultiplier: 1.0 },
+  { id: 'fatloss', label: 'Fat Loss', icon: 'flame', description: 'Burn fat while keeping muscle', volumeMultiplier: 1.1 },
   { id: 'endurance', label: 'Endurance', icon: 'bicycle', description: 'Improve stamina and conditioning', volumeMultiplier: 0.7 },
   { id: 'general', label: 'General Fitness', icon: 'heart', description: 'Stay healthy and active', volumeMultiplier: 0.9 },
 ];
@@ -121,7 +122,7 @@ export default function OnboardingScreen() {
   // Form state
   const [name, setName] = useState("");
   const [bodyweight, setBodyweight] = useState("");
-  const [selectedLevel, setSelectedLevel] = useState<ExperienceLevel | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<ExperienceLevel | null>('intermediate');
   const [selectedGoal, setSelectedGoal] = useState<string>('hypertrophy');
   const [trainingDays, setTrainingDays] = useState<number>(4);
 
@@ -137,12 +138,10 @@ export default function OnboardingScreen() {
     // Scroll to top before changing step
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
 
+    // Simplified flow: welcome → personal → goals → auth
     if (currentStep === 'welcome') setCurrentStep('personal');
-    else if (currentStep === 'personal') setCurrentStep('experience');
-    else if (currentStep === 'experience') setCurrentStep('goals');
-    else if (currentStep === 'goals') setCurrentStep('schedule');
-    else if (currentStep === 'schedule') setCurrentStep('preview');
-    else if (currentStep === 'preview') setCurrentStep('auth');
+    else if (currentStep === 'personal') setCurrentStep('goals');
+    else if (currentStep === 'goals') setCurrentStep('auth');
     else if (currentStep === 'auth') handleSkipAuth();
   };
 
@@ -150,30 +149,17 @@ export default function OnboardingScreen() {
     // Scroll to top before changing step
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
 
+    // Simplified flow back navigation
     if (currentStep === 'personal') setCurrentStep('welcome');
-    else if (currentStep === 'experience') setCurrentStep('personal');
-    else if (currentStep === 'goals') setCurrentStep('experience');
-    else if (currentStep === 'schedule') setCurrentStep('goals');
-    else if (currentStep === 'preview') setCurrentStep('schedule');
-    else if (currentStep === 'auth') {
-      // Check if user came directly from welcome or from preview
-      // If they've filled out personal info, go back to preview, otherwise go to welcome
-      if (name.trim() && bodyweight) {
-        setCurrentStep('preview');
-      } else {
-        setCurrentStep('welcome');
-      }
-    }
+    else if (currentStep === 'goals') setCurrentStep('personal');
+    else if (currentStep === 'auth') setCurrentStep('goals');
   };
 
   const canProceed = () => {
     if (currentStep === 'welcome') return true;
     if (currentStep === 'personal') return name.trim() && bodyweight && parseFloat(bodyweight) > 0;
-    if (currentStep === 'experience') return selectedLevel !== null;
-    if (currentStep === 'goals') return true;
-    if (currentStep === 'schedule') return true;
-    if (currentStep === 'preview') return true;
-    if (currentStep === 'auth') return true; // Will be gated by auth buttons
+    if (currentStep === 'goals') return selectedGoal !== null;
+    if (currentStep === 'auth') return true;
     return false;
   };
 
@@ -516,9 +502,35 @@ export default function OnboardingScreen() {
           value={bodyweight}
           onChangeText={setBodyweight}
         />
-        <Text style={styles.helperText}>
-          Used to calibrate relative strength and recommendations
-        </Text>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Days per week you can train</Text>
+        <View style={styles.daysSelector}>
+          {[3, 4, 5, 6].map((days) => (
+            <Pressable
+              key={days}
+              style={[
+                styles.dayOption,
+                trainingDays === days && styles.dayOptionSelected,
+              ]}
+              onPress={() => setTrainingDays(days)}
+            >
+              <Text style={[
+                styles.dayNumber,
+                trainingDays === days && styles.dayNumberSelected,
+              ]}>
+                {days}
+              </Text>
+              <Text style={[
+                styles.dayLabel,
+                trainingDays === days && styles.dayLabelSelected,
+              ]}>
+                days
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -722,75 +734,75 @@ export default function OnboardingScreen() {
           </Text>
         </View>
 
-      <View style={styles.authButtons}>
-        <Pressable
-          style={[styles.authButtonPrimary, isAuthenticating && styles.authButtonDisabled]}
-          onPress={handleAppleSignIn}
-          disabled={isAuthenticating}
-        >
-          {isAuthenticating ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <>
-              <Ionicons name="logo-apple" size={24} color={colors.white} />
-              <Text style={styles.authButtonPrimaryText}>Continue with Apple</Text>
-            </>
-          )}
-        </Pressable>
+        <View style={styles.authButtons}>
+          <Pressable
+            style={[styles.authButtonPrimary, isAuthenticating && styles.authButtonDisabled]}
+            onPress={handleAppleSignIn}
+            disabled={isAuthenticating}
+          >
+            {isAuthenticating ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <>
+                <Ionicons name="logo-apple" size={24} color={colors.white} />
+                <Text style={styles.authButtonPrimaryText}>Continue with Apple</Text>
+              </>
+            )}
+          </Pressable>
 
-        <Pressable
-          style={[styles.authButtonSecondary, isAuthenticating && styles.authButtonDisabled]}
-          onPress={handleGoogleSignIn}
-          disabled={isAuthenticating}
-        >
-          {isAuthenticating ? (
-            <ActivityIndicator color={colors.gray[700]} />
-          ) : (
-            <>
-              <Ionicons name="logo-google" size={20} color={colors.gray[700]} />
-              <Text style={styles.authButtonSecondaryText}>Continue with Google</Text>
-            </>
-          )}
-        </Pressable>
+          <Pressable
+            style={[styles.authButtonSecondary, isAuthenticating && styles.authButtonDisabled]}
+            onPress={handleGoogleSignIn}
+            disabled={isAuthenticating}
+          >
+            {isAuthenticating ? (
+              <ActivityIndicator color={colors.gray[700]} />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={20} color={colors.gray[700]} />
+                <Text style={styles.authButtonSecondaryText}>Continue with Google</Text>
+              </>
+            )}
+          </Pressable>
 
-        <View style={styles.authDivider}>
-          <View style={styles.authDividerLine} />
-          <Text style={styles.authDividerText}>or</Text>
-          <View style={styles.authDividerLine} />
+          <View style={styles.authDivider}>
+            <View style={styles.authDividerLine} />
+            <Text style={styles.authDividerText}>or</Text>
+            <View style={styles.authDividerLine} />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your email"
+              placeholderTextColor={colors.gray[400]}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+          </View>
+
+          <Pressable
+            style={[styles.authButtonSecondary, isAuthenticating && styles.authButtonDisabled]}
+            onPress={handleEmailSignIn}
+            disabled={isAuthenticating}
+          >
+            {isAuthenticating ? (
+              <ActivityIndicator color={colors.gray[700]} />
+            ) : (
+              <>
+                <Ionicons name="mail-outline" size={20} color={colors.gray[700]} />
+                <Text style={styles.authButtonSecondaryText}>Continue with Email</Text>
+              </>
+            )}
+          </Pressable>
         </View>
 
-        <View style={styles.inputGroup}>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            placeholderTextColor={colors.gray[400]}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
-
-        <Pressable
-          style={[styles.authButtonSecondary, isAuthenticating && styles.authButtonDisabled]}
-          onPress={handleEmailSignIn}
-          disabled={isAuthenticating}
-        >
-          {isAuthenticating ? (
-            <ActivityIndicator color={colors.gray[700]} />
-          ) : (
-            <>
-              <Ionicons name="mail-outline" size={20} color={colors.gray[700]} />
-              <Text style={styles.authButtonSecondaryText}>Continue with Email</Text>
-            </>
-          )}
-        </Pressable>
+        <Text style={styles.authPrivacy}>
+          By continuing, you agree to our Terms of Service and Privacy Policy. Your workout data is encrypted and secure.
+        </Text>
       </View>
-
-      <Text style={styles.authPrivacy}>
-        By continuing, you agree to our Terms of Service and Privacy Policy. Your workout data is encrypted and secure.
-      </Text>
-    </View>
     );
   };
 
@@ -843,11 +855,12 @@ export default function OnboardingScreen() {
   // ============================================================================
 
   const getStepNumber = () => {
-    const steps = ['welcome', 'personal', 'experience', 'goals', 'schedule', 'preview', 'auth'];
+    // Simplified 4-step flow
+    const steps = ['welcome', 'personal', 'goals', 'auth'];
     return steps.indexOf(currentStep) + 1;
   };
 
-  const totalSteps = 7;
+  const totalSteps = 4; // Simplified flow: welcome, personal, goals, auth
   const currentStepNumber = getStepNumber();
 
   // ============================================================================
